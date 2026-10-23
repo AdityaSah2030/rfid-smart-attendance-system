@@ -1,6 +1,6 @@
 /*
   RFID UID Scanner for ESP32 + MFRC522 / RC522
-  Use this sketch first to find the real UID of each student card.
+  Use this sketch first to find each card's real UID.
   Serial Monitor: 115200 baud
 */
 
@@ -55,6 +55,5 @@ void loop() {
 
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();
-
   delay(800);
 }

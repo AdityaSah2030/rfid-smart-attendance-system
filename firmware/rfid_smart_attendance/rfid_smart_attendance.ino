@@ -1,11 +1,16 @@
 /*
-  RFID-Based Smart Attendance System
+  RFID-Based Smart Attendance System with Automatic Excel Logging
   Board: ESP32 DevKit (ESP32-WROOM-32 compatible)
   Reader: MFRC522 / RC522
-  Serial Monitor: 115200 baud
+  Serial Monitor / Python logger: 115200 baud
 
   Install the "MFRC522" library before compiling.
-  Replace the sample UIDs in the students array with your own card UIDs.
+  Replace the sample UIDs with your actual card UIDs.
+
+  For each newly marked attendance, the firmware emits:
+  EXCEL|UID|Student Name|PRESENT
+
+  Python reads that line over USB serial and saves the record to attendance.xlsx.
 */
 
 #include <SPI.h>
@@ -23,6 +28,7 @@ struct Student {
 
 // IMPORTANT: These UIDs are examples only.
 // Use rfid_uid_scanner.ino to read your actual card UIDs.
+// Do not use the pipe character '|' in student names.
 const Student students[] = {
   {"04 A3 7B 2C", "Anushka"},
   {"D1 82 5F 19", "Rahul"},
@@ -54,7 +60,7 @@ void printDivider() {
   Serial.println("----------------------------------------");
 }
 
-void printAttendance(const String& scannedUID) {
+void processAttendance(const String& scannedUID) {
   Serial.println();
   Serial.println("Card detected");
   Serial.print("UID: ");
@@ -65,6 +71,7 @@ void printAttendance(const String& scannedUID) {
   for (size_t i = 0; i < STUDENT_COUNT; i++) {
     if (scannedUID.equals(students[i].uid)) {
       registered = true;
+
       Serial.print("Student: ");
       Serial.println(students[i].name);
 
@@ -72,9 +79,19 @@ void printAttendance(const String& scannedUID) {
         attendanceMarked[i] = true;
         Serial.println("Attendance: PRESENT");
         Serial.println("Result: Attendance marked successfully");
+
+        // Machine-readable record consumed by attendance_to_excel.py.
+        // Keep this format exactly: EXCEL|UID|Name|PRESENT
+        Serial.print("EXCEL|");
+        Serial.print(scannedUID);
+        Serial.print("|");
+        Serial.print(students[i].name);
+        Serial.println("|PRESENT");
       } else {
         Serial.println("Result: Attendance already marked this session");
+        // No EXCEL record is sent for this duplicate scan.
       }
+
       break;
     }
   }
@@ -82,6 +99,7 @@ void printAttendance(const String& scannedUID) {
   if (!registered) {
     Serial.println("UID is not registered.");
     Serial.println("Attendance: NOT MARKED");
+    // Unknown cards never produce an EXCEL record.
   }
 
   printDivider();
@@ -114,7 +132,7 @@ void loop() {
   }
 
   const String scannedUID = readCardUID();
-  printAttendance(scannedUID);
+  processAttendance(scannedUID);
 
   rfid.PICC_HaltA();
   rfid.PCD_StopCrypto1();

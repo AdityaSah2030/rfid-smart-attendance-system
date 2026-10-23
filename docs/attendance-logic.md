@@ -1,28 +1,19 @@
 # Attendance Logic
 
-## Student Registration
+## Registration
+Register each student in the firmware with their actual card UID and name. Use the UID scanner sketch to obtain the value. Example UIDs in the code are placeholders.
 
-Students are registered in the firmware by adding their scanned UID and display name to the `students` array.
+## ESP32 Duplicate Prevention
+The ESP32 maintains a Boolean attendance flag for each registered student. It emits the `EXCEL|...` record only when attendance is first marked during the current power-on session.
 
-```cpp
-const Student students[] = {
-  {"04 A3 7B 2C", "Anushka"},
-  {"D1 82 5F 19", "Rahul"}
-};
-```
+## Excel Duplicate Prevention
+Python checks `attendance.xlsx` for an existing record with the same UID and date. This second check prevents duplicate records if the ESP32 restarts during the same day.
 
-These are example values. Replace them with actual UIDs from your own cards.
+## Timestamp
+Python records the date and time from the computer's system clock when it receives the serial record. Keep the computer's date/time correct. If exact scan-time timestamps independent of the PC are required, add a real-time clock or reliable time synchronisation to the firmware.
 
-## Duplicate Prevention
+## Multiple Classes per Day
+The current workbook stores one attendance record per UID per calendar day. If students attend multiple classes each day, add a `Session` or `Class ID` column and include it in the duplicate-check rule.
 
-The firmware maintains one Boolean flag per registered student. When a student's card is accepted, that flag becomes `true`. Further scans during the same run print `Attendance already marked this session` rather than marking the student again.
-
-The flags are held in RAM, so they reset after a restart or power loss. This project does not persist attendance to flash storage or a database.
-
-## Unknown Cards
-
-If the scanned UID is not found in the registered-student array, the program prints `UID is not registered` and does not mark attendance.
-
-## Security Note
-
-UID-only identification is suitable for a basic classroom prototype, but a UID can sometimes be copied or emulated. Do not treat this design as secure authentication for high-risk access control.
+## Security
+An RFID UID is an identifier and can sometimes be copied or emulated. This project is appropriate as a basic educational prototype, not as sole authentication for high-security systems.

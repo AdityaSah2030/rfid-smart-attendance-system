@@ -2,13 +2,15 @@
 
 ## Data Flow
 
-1. A student presents an RFID card/tag to the reader.
-2. The MFRC522 reads the card UID.
-3. The ESP32 converts the UID to uppercase hexadecimal text.
-4. The program compares the UID with the registered-student list.
-5. If a match exists and attendance has not already been marked, the program prints the student name and `PRESENT`.
-6. If the UID is unknown, the program reports that attendance was not marked.
-7. If the same registered card is scanned again, the program reports that attendance has already been marked for this session.
+1. Student presents a compatible RFID card/tag.
+2. RC522 reads the UID and sends it to the ESP32 over SPI.
+3. ESP32 converts the UID to uppercase hexadecimal text.
+4. Firmware checks the registered-student list.
+5. If the card is registered and not already marked during the current ESP32 session, firmware prints attendance details and sends one machine-readable serial line:
+   `EXCEL|UID|Student Name|PRESENT`
+6. Python reads the line from USB serial and validates its fields.
+7. Python uses the computer's current date/time, checks the workbook for an existing row with the same UID and date, then appends the record.
+8. `attendance.xlsx` stores date, time, name, UID, and status.
 
 ## Architecture Diagram
 
@@ -21,32 +23,38 @@
 +-------------------+
 | MFRC522 reader    |
 +---------+---------+
-          |
           | SPI
           v
 +-------------------+
 | ESP32 firmware    |
 | - Read UID        |
 | - Match student   |
-| - Check duplicate |
-| - Print result    |
+| - Mark attendance |
+| - Print EXCEL row |
 +---------+---------+
-          |
-          | USB Serial @ 115200 baud
+          | USB Serial
           v
 +-------------------+
-| Serial Monitor    |
+| Python logger     |
+| pyserial          |
+| openpyxl          |
++---------+---------+
+          |
+          v
++-------------------+
+| attendance.xlsx   |
 +-------------------+
 ```
 
-## Pin Configuration
+## Serial Record Format
 
-The default sketch uses these ESP32 pins:
+`EXCEL|UID|Student Name|PRESENT`
 
-- SS/SDA: GPIO 5
-- SCK: GPIO 18
-- MOSI: GPIO 23
-- MISO: GPIO 19
-- RST: GPIO 22
+The `EXCEL|` prefix allows Python to ignore ordinary debug messages. Do not use `|` inside student names because it is the field delimiter.
 
-These pins can be changed in the sketch if required, but the physical wiring must match the code.
+## Important Behaviour
+
+- Excel timestamp is the computer time when Python receives the event.
+- The workbook deduplicates by UID and date, so it records one attendance row per card per day.
+- The ESP32's in-memory flag prevents repeated marks during one power-on session.
+- The PC and logger must be running; this version is not an offline standalone logger.

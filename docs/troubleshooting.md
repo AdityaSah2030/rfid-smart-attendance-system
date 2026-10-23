@@ -1,32 +1,45 @@
 # Troubleshooting
 
 ## Serial Monitor shows nothing
-- Set the baud rate to **115200**.
-- Check that the correct ESP32 board and COM port are selected.
-- Use a USB cable that supports data, not charging only.
-- Press the ESP32 reset/EN button after opening Serial Monitor.
+- Set baud rate to 115200.
+- Confirm the correct board and COM port.
+- Use a USB data cable.
+- Press the ESP32 reset/EN button.
 
-## Reader is not detected or cards are not read
-- Confirm the RC522 is powered from **3V3**, not 5V.
-- Recheck GND, SS/SDA, SCK, MOSI, MISO, and RST connections.
-- Keep jumper wires short and secure.
-- Confirm the card/tag is compatible with a 13.56 MHz MFRC522 reader. Many 125 kHz cards will not work.
+## Python reports a serial connection error
+- Check `SERIAL_PORT` in `attendance_to_excel.py`.
+- Close Arduino Serial Monitor and other apps using the same COM port.
+- Confirm the USB cable supports data.
+- On Windows, inspect Device Manager for the COM port.
+
+## `No module named serial`
+Install dependencies in the same Python environment used to run the script:
+
+```bash
+python -m pip install -r requirements.txt
+```
 
 ## `MFRC522.h: No such file or directory`
-Install the `MFRC522` library using Arduino IDE Library Manager.
+Install the MFRC522 library in Arduino IDE Library Manager.
 
-## Card is detected but marked unknown
-- Upload the UID scanner sketch and scan the card.
-- Copy the exact UID printed by the scanner into the `students` array.
-- Keep each UID byte separated by one space and use uppercase hexadecimal characters.
-- Recompile and upload the attendance sketch.
+## Reader does not detect cards
+- Power RC522 from 3V3, not 5V.
+- Check GND, SS/SDA, SCK, MOSI, MISO, and RST wires.
+- Verify that the card is compatible with the 13.56 MHz MFRC522 reader; many 125 kHz cards are incompatible.
+
+## Card appears as unknown
+Run the UID scanner, copy the exact UID, and update the `students` array. Recompile and upload the attendance sketch.
+
+## Excel file cannot be saved
+Close `attendance.xlsx` in Excel, then scan again. Check that the project folder is writable.
+
+## Attendance is not being written
+- Confirm Python logger is running before scanning.
+- Confirm the Arduino firmware prints the line beginning with `EXCEL|`.
+- Check the terminal for serial or workbook errors.
+- Keep student names free of the `|` character.
 
 ## Upload fails
-- Check the selected COM port.
+- Check the selected board and port.
 - Try another USB data cable or USB port.
-- Some ESP32 boards require holding the BOOT button while upload begins.
-
-## Reader behaves inconsistently
-- Verify all SPI wires and common ground.
-- Avoid powering motors or other high-current loads from the ESP32 3V3 pin.
-- If using a different ESP32 variant, confirm the chosen GPIO pins are available on that board.
+- Some ESP32 boards need the BOOT button held while upload begins.

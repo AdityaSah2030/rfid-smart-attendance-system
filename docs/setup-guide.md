@@ -1,26 +1,42 @@
 # Setup Guide
 
-## 1. Install Arduino IDE
-Install Arduino IDE 2.x on your computer.
-
-## 2. Install ESP32 board support
-In Arduino IDE, open **File → Preferences**. Add the following URL to “Additional Boards Manager URLs”:
+## 1. Install Arduino IDE and ESP32 board support
+Install Arduino IDE. If needed, add this board URL in File → Preferences:
 
 `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
 
-Open **Tools → Board → Boards Manager**, search for `esp32`, and install **esp32 by Espressif Systems**. Select the board matching your hardware and select the correct port.
+Use Boards Manager to install `esp32 by Espressif Systems`, then select the board and COM port matching your device.
 
-## 3. Install MFRC522 library
-Open **Sketch → Include Library → Manage Libraries**, search for `MFRC522`, and install it.
+## 2. Install the MFRC522 library
+In Arduino IDE, open Sketch → Include Library → Manage Libraries, search for `MFRC522`, and install it.
 
-## 4. Wire the RC522 reader
-Follow the table and diagram in [`../hardware/components.md`](../hardware/components.md) and the root README. Power the reader from the ESP32's 3V3 pin, not 5V.
+## 3. Wire the reader
+Connect the RC522 using the table in `hardware/components.md`. Power the reader from ESP32 3V3, not 5V.
 
-## 5. Read the UIDs
-Open and upload `firmware/rfid_uid_scanner/rfid_uid_scanner.ino`. Open Serial Monitor at 115200 baud and scan each card.
+## 4. Read card UIDs
+Upload `firmware/rfid_uid_scanner/rfid_uid_scanner.ino`, open Serial Monitor at 115200 baud, and scan each card. Copy the exact UID printed.
 
-## 6. Register student IDs
-Copy each UID into the `students` array in `firmware/rfid_smart_attendance/rfid_smart_attendance.ino`, together with the student's name. Use the exact UID printed by the scanner.
+## 5. Register students
+Edit the `students` array in `firmware/rfid_smart_attendance/rfid_smart_attendance.ino`. Replace the placeholder UIDs and names with your real values, then upload the attendance sketch.
 
-## 7. Run attendance
-Upload the attendance sketch, open Serial Monitor at 115200 baud, and scan registered cards. A student's attendance is marked once per power-on session.
+## 6. Install Python packages
+From the project folder, run:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+## 7. Configure the serial port
+In `attendance_to_excel.py`, change `SERIAL_PORT = "COM3"` to your ESP32's actual port. Arduino IDE → Tools → Port shows the selected port. Linux and macOS use device paths rather than COM names.
+
+## 8. Start the logger
+Close Arduino Serial Monitor. Run:
+
+```bash
+python attendance_to_excel.py
+```
+
+Keep the terminal open. Scan a registered card. The script creates `attendance.xlsx` in the project folder and adds one row per UID per date.
+
+## 9. View Excel data
+Open `attendance.xlsx` after scanning. If the workbook cannot be saved, close it in Excel and scan again. The logger prints save errors in the terminal.

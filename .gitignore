@@ -1,3 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Generated attendance workbook (may contain personal data)
+attendance.xlsx
+attendance-*.xlsx
+
 # Arduino build outputs
 build/
 *.elf
@@ -6,11 +17,11 @@ build/
 *.map
 *.o
 
-# Editor / OS files
+# Editors and OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Local logs
+# Logs
 *.log

@@ -1,35 +1,28 @@
 # Hardware Components
 
-This project uses an ESP32 and an MFRC522 RFID reader to identify student cards and print attendance information to the Serial Monitor.
-
 | Component | Quantity | Purpose |
 |---|---:|---|
-| ESP32 DevKit | 1 | Main controller |
-| MFRC522 / RC522 RFID reader | 1 | Reads compatible RFID card UIDs |
-| 13.56 MHz RFID cards or key fobs | 1 or more | Student IDs |
-| Jumper wires | As required | Connect the reader to ESP32 |
-| USB data cable | 1 | Upload firmware and view serial output |
+| ESP32 DevKit | 1 | Reads card data, matches students, and sends attendance over USB serial |
+| MFRC522 / RC522 reader | 1 | Reads compatible 13.56 MHz RFID cards/tags |
+| RFID card or key fob | 1 or more | Student identifier |
+| Jumper wires | As required | Connects the reader to ESP32 |
+| USB data cable | 1 | Uploads firmware and transfers serial records to the computer |
 
-## Component Overview
+## Wiring
 
-### ESP32 DevKit
-Runs the firmware, matches card UIDs to student names, tracks attendance for the current session, and prints results over USB serial.
+| RC522 pin | ESP32 pin |
+|---|---|
+| 3.3V | 3V3 |
+| GND | GND |
+| RST | GPIO 22 |
+| SDA / SS | GPIO 5 |
+| SCK | GPIO 18 |
+| MOSI | GPIO 23 |
+| MISO | GPIO 19 |
+| IRQ | Not connected |
 
-### MFRC522 / RC522 Reader
-Reads supported 13.56 MHz RFID cards and tags. It communicates with the ESP32 over SPI. The RC522 board's pin labelled `SDA` is used as the SPI chip-select pin in this project.
+**Do not power the RC522 from 5V.** Use 3V3 and 3.3V logic.
 
-### RFID Cards / Key Fobs
-Each card/tag has a UID. The sketch uses this UID to find the matching student in the registered-student list. Use the UID scanner sketch to read the actual UID values.
+## How Excel is connected
 
-### Jumper Wires
-Connect the RC522 pins to the ESP32. Keep wires short where possible for reliable SPI communication.
-
-## Estimated Cost (India)
-
-| Component | Approximate cost (INR) |
-|---|---:|
-| ESP32 DevKit | ₹300–₹600 |
-| RC522 kit with card/tag | ₹65–₹150 |
-| Jumper wires | ₹50–₹150 |
-
-Prices are estimates and vary by seller, quality, and shipping. If you already own the ESP32 and jumper wires, the extra cost may be limited to the RFID kit.
+No additional hardware is required for Excel integration. A Python script running on the computer reads a machine-readable record from the ESP32 USB serial connection and writes it into `attendance.xlsx`. The computer and Python logger must be running during scans.
