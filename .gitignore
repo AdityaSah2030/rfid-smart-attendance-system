@@ -1,27 +1,66 @@
+# =========================
 # Python
+# =========================
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+env/
 .env
 
-# Generated attendance workbook (may contain personal data)
+# =========================
+# Excel & Attendance Data
+# =========================
 attendance.xlsx
 attendance-*.xlsx
 
-# Arduino build outputs
+# =========================
+# Arduino IDE & ESP32
+# =========================
+*.tmp
+*.bak
+*.orig
+
+# =========================
+# VS Code & Editors
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# PlatformIO
+# =========================
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# =========================
+# Build Files
+# =========================
 build/
+dist/
+*.o
+*.obj
 *.elf
 *.hex
 *.bin
 *.map
-*.o
 
-# Editors and OS files
-.vscode/
-.idea/
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Operating System Files
+# =========================
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Logs
-*.log
+# =========================
+# Temporary Files
+# =========================
+*.swp
+*.swo
+*~

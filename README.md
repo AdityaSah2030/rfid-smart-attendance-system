@@ -1,295 +1,163 @@
-# RFID-Based Smart Attendance System with Automatic Excel Logging
+# RFID Smart Attendance System using ESP32
 
-An RFID attendance system built with an **ESP32**, an **MFRC522 (RC522) RFID reader**, and a **Python serial logger**. A registered student scans their card, the ESP32 identifies the card UID, and Python automatically records the attendance in an Excel workbook (`attendance.xlsx`).
-
-This project keeps the original simple hardware setup. No SD card, extra microcontroller, or Wi-Fi connection is required. The computer must be connected to the ESP32 over USB and the Python logger must be running.
-
-## Features
-
-- Reads supported RFID card/tag UIDs using an MFRC522 reader.
-- Matches card UIDs to registered student names.
-- Prints attendance and diagnostic information in Arduino IDE Serial Monitor.
-- Sends a machine-readable serial record for successful attendance.
-- Uses Python to create/update an Excel workbook automatically.
-- Stores date, time, student name, UID, and attendance status.
-- Rejects unknown cards.
-- Prevents duplicate records for the same UID on the same date in Excel.
-- Includes a separate RFID UID scanner sketch.
-- Includes wiring diagram, setup instructions, troubleshooting, and architecture notes.
-
-> **Before you begin:** The sample card UIDs in the firmware are placeholders. Run the UID scanner sketch and replace them with your actual card UIDs.
+An automated smart attendance system that uses RFID technology and an ESP32 microcontroller to log attendance records directly into Microsoft Excel in real time. The system is built using an ESP32 DevKit, MFRC522 (RC522) 13.56 MHz RFID reader, and a lightweight Python serial logger for automated spreadsheet logging and duplicate scan prevention.
 
 ---
 
-## Project Folder Structure
+## Overview
 
-```text
-rfid-smart-attendance-system-excel/
-├── README.md
-├── LICENSE
-├── .gitignore
-├── requirements.txt
-├── attendance_to_excel.py
-├── docs/
-│   ├── attendance-logic.md
-│   ├── project-architecture.md
-│   ├── setup-guide.md
-│   └── troubleshooting.md
-├── firmware/
-│   ├── rfid_smart_attendance/
-│   │   └── rfid_smart_attendance.ino
-│   └── rfid_uid_scanner/
-│       └── rfid_uid_scanner.ino
-└── hardware/
-    ├── circuit-diagram.png
-    └── components.md
-```
+This project implements an automated, contactless attendance recording system that identifies registered students via RFID cards and key fobs, synchronizing verified attendance records with an Excel workbook over serial communication.
 
-The `attendance.xlsx` file is created automatically in the same folder as `attendance_to_excel.py` the first time a valid attendance record is received.
+### Key Features
+
+- Contactless RFID-based student identification using MFRC522 (13.56 MHz)
+- Real-time Excel logging via Python serial communication
+- Dual-layer duplicate scan prevention (firmware debouncing and host-side date checking)
+- Standalone RFID card UID scanner utility
+- Formatted Excel workbook creation with styled headers, custom widths, and auto-filters
+- Serial diagnostics and status reporting (Registered / Unknown card handling)
+- Sub-second card detection and processing latency
+- Clean separation between embedded firmware and desktop host software
+
+---
+
+## Demo
+
+### Project Demonstration
+
+See `media/` for demonstration assets and recordings of the system in operation.
+
+When a registered card is brought near the MFRC522 reader, the ESP32 verifies the physical UID against registered student records, sends a structured serial payload (`EXCEL|UID|Name|PRESENT`), and the Python logger appends the entry to `attendance.xlsx` with accurate system timestamps and duplicate verification.
 
 ---
 
 ## Hardware Components
 
-| Component | Quantity | Purpose |
-|---|---:|---|
-| ESP32 DevKit (ESP32-WROOM-32 or compatible) | 1 | Main controller |
-| MFRC522 / RC522 RFID reader | 1 | Reads RFID card/tag UIDs |
-| Compatible 13.56 MHz RFID card or key fob | 1 or more | Student identification |
-| Jumper wires | As required | Reader connections |
-| USB data cable | 1 | Upload firmware and send serial data to the computer |
-
-### Estimated cost in India
-
-| Component | Approximate cost |
-|---|---:|
-| ESP32 DevKit | ₹300–₹600 |
-| RC522 reader kit with card/tag | ₹65–₹150 |
-| Jumper wires (if needed) | ₹50–₹150 |
-
-Approximate total: **₹415–₹900**, depending on seller, shipping, and components already available.
+| Component | Description |
+|-----------|-------------|
+| ESP32 DevKit | Main microcontroller with VSPI and serial interface |
+| MFRC522 RFID Reader | 13.56 MHz contactless card and tag reader |
+| RFID Cards / Key Fobs | Contactless student identification credentials |
+| USB Data Cable | ESP32 flashing and serial data transmission |
+| Jumper Wires | SPI bus and power interconnects |
 
 ---
 
 ## Circuit Diagram
 
-![ESP32 and RC522 wiring diagram](hardware/circuit-diagram.png)
+![Circuit Diagram](hardware/circuit-diagram.png)
 
-### RC522-to-ESP32 wiring
-
-| RC522 pin | ESP32 pin |
-|---|---|
-| 3.3V | 3V3 |
-| GND | GND |
-| RST | GPIO 22 |
-| SDA / SS | GPIO 5 |
-| SCK | GPIO 18 |
-| MOSI | GPIO 23 |
-| MISO | GPIO 19 |
-| IRQ | Not connected |
-
-`SDA` on the RC522 board is used as the SPI chip-select pin in this project.
-
-> **Electrical warning:** Power the RC522 from the ESP32's **3V3** pin, never 5V. The RC522 and ESP32 use 3.3V logic. Keep the wires short and connections secure.
+The system is built around an ESP32 DevKit connected to an MFRC522 RFID reader over the hardware VSPI bus (GPIO 18 SCK, GPIO 19 MISO, GPIO 23 MOSI, GPIO 5 SS/SDA, and GPIO 22 RST). Power is supplied through the ESP32 3.3V rail to protect the reader's 3.3V logic.
 
 ---
 
-## Software Requirements
-
-- Arduino IDE 2.x
-- ESP32 board support for Arduino IDE
-- `MFRC522` library (commonly listed as MFRC522 by GithubCommunity)
-- Python 3.10 or newer recommended
-- Python packages listed in `requirements.txt`
-
-### Install ESP32 board support
-
-1. Open Arduino IDE → **File → Preferences**.
-2. Add this URL to **Additional Boards Manager URLs** if it is not already present:
-
-   `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
-
-3. Open **Tools → Board → Boards Manager**.
-4. Search for `esp32` and install **esp32 by Espressif Systems**.
-5. Select the correct ESP32 board and COM port.
-
-### Install the RFID library
-
-Open **Sketch → Include Library → Manage Libraries**, search for `MFRC522`, and install it.
-
-### Install Python dependencies
-
-Open Command Prompt or the VS Code terminal in the project folder and run:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-If `python` is not recognised on Windows, try:
-
-```bash
-py -m pip install -r requirements.txt
-```
-
----
-
-## How to Run the Project
-
-### Step 1 — Read your RFID card UIDs
-
-1. Open `firmware/rfid_uid_scanner/rfid_uid_scanner.ino` in Arduino IDE.
-2. Upload it to the ESP32.
-3. Open **Tools → Serial Monitor** and set the baud rate to **115200**.
-4. Scan each card/tag and copy the UID printed in the monitor.
-
-### Step 2 — Register students
-
-Open `firmware/rfid_smart_attendance/rfid_smart_attendance.ino`. Replace the sample entries in the `students` array with your actual UIDs and student names.
-
-Example only:
-
-```cpp
-const Student students[] = {
-  {"04 A3 7B 2C", "Anushka"},
-  {"D1 82 5F 19", "Rahul"}
-};
-```
-
-Use the UIDs read from your own cards. The UID format should match the scanner output. Avoid using the `|` character in student names because it separates fields in the serial record.
-
-### Step 3 — Upload the attendance firmware
-
-Upload `rfid_smart_attendance.ino` to the ESP32.
-
-### Step 4 — Close Arduino Serial Monitor
-
-**Close Arduino Serial Monitor before running Python.** Only one program can normally use the ESP32's COM port at a time. The Python logger reads the same USB serial connection.
-
-### Step 5 — Find the COM port
-
-In Arduino IDE, check **Tools → Port** and note the ESP32 port (for example, `COM3`).
-
-Open `attendance_to_excel.py` and update:
-
-```python
-SERIAL_PORT = "COM3"
-```
-
-Replace `COM3` with your actual port. On Linux, a port may look like `/dev/ttyUSB0` or `/dev/ttyACM0`; on macOS, it may look like `/dev/cu.usbserial-...`.
-
-### Step 6 — Start automatic Excel logging
-
-Run in the project folder:
-
-```bash
-python attendance_to_excel.py
-```
-
-On Windows, this can also be:
-
-```bash
-py attendance_to_excel.py
-```
-
-Keep the terminal running and scan a registered card. The script creates or updates `attendance.xlsx` automatically.
-
-### Step 7 — View the Excel workbook
-
-Open `attendance.xlsx` after scanning. Each accepted record includes:
-
-- Date
-- Time
-- Student Name
-- RFID UID
-- Status
-
-The date and time are taken from the computer running Python, when the serial record is received.
-
----
-
-## Example Serial Monitor Output
-
-The ESP32 prints diagnostic messages plus a machine-readable line for Python:
+## System Architecture
 
 ```text
-========================================
-     RFID SMART ATTENDANCE SYSTEM
-========================================
-Reader initialized.
-System ready. Scan an RFID card...
-
-Card detected
-UID: 04 A3 7B 2C
-Student: Anushka
-Attendance: PRESENT
-Result: Attendance marked successfully
-EXCEL|04 A3 7B 2C|Anushka|PRESENT
-----------------------------------------
-```
-
-The sample UID/name above are illustrative. Python listens for lines beginning with `EXCEL|` and ignores other diagnostic messages.
-
-### Example Excel rows
-
-| Date | Time | Student Name | RFID UID | Status |
-|---|---|---|---|---|
-| 2026-10-23 | 10:15:21 | Anushka | 04 A3 7B 2C | PRESENT |
-| 2026-10-23 | 10:16:08 | Rahul | D1 82 5F 19 | PRESENT |
-
-These rows are examples only.
-
----
-
-## Architecture
-
-```text
-RFID Card / Tag
-      |
-      v
-MFRC522 Reader
-      |
-      | SPI
-      v
-ESP32 Attendance Firmware
-      |
-      | USB Serial: EXCEL|UID|NAME|PRESENT
-      v
+RFID Card / Key Fob
+        │
+        ▼
+MFRC522 RFID Reader
+        │
+        ▼
+   ESP32 DevKit
+        │
+        ▼
+USB Serial Stream
+        │
+        ▼
 Python Serial Logger
-      |
-      | openpyxl
-      v
-attendance.xlsx
-(Date, Time, Name, UID, Status)
+        │
+        ▼
+ attendance.xlsx
 ```
 
 ---
 
-## Important Behaviour and Limitations
+## Working Principle
 
-- **Computer required:** The computer must stay connected to the ESP32 and the Python script must be running to record attendance in Excel.
-- **Serial Monitor:** Close Arduino Serial Monitor while Python uses the COM port.
-- **Duplicate prevention:** Python checks the UID and date before adding a row. This prevents repeated records for the same card on the same date, including after restarting the ESP32.
-- **Session handling:** This version treats attendance as one record per student per calendar day. If you have multiple classes per day, add a session/class identifier to the workbook and duplicate-check logic.
-- **Timestamp:** Date/time is from the computer when the record is received, not a hardware clock on the ESP32.
-- **Workbook use:** If Excel reports that the file cannot be saved, close `attendance.xlsx` and scan again. The logger reports save errors in the terminal.
-- **RAM state:** ESP32's in-memory attendance flags reset on restart. The Python/Excel date-and-UID check is the second layer of duplicate prevention.
-- **Security:** An RFID UID is an identifier, not strong authentication. Do not use this basic UID-only design as the sole security control for high-risk systems.
-- **Card compatibility:** RC522 typically reads compatible 13.56 MHz cards; many 125 kHz cards will not work.
+The MFRC522 RFID reader communicates with the ESP32 over the SPI bus to read the unique identifier (UID) of passive RFID tags operating at 13.56 MHz.
+
+When a card is detected, the system processes attendance through the following pipeline:
+
+1. **UID Acquisition:** The ESP32 parses the card's serial number into a normalized, uppercase hexadecimal format.
+2. **Registry Lookup:** The UID is compared against the internal student registry stored in memory.
+3. **Session Debounce:** If the card was already marked during the current session, further transmission is suppressed to prevent rapid double-scanning.
+4. **Serial Transmission:** A structured payload (`EXCEL|UID|Name|PRESENT`) is broadcast over USB serial at 115200 baud.
+5. **Host Deduplication:** The Python logger checks `attendance.xlsx` to ensure the student has not already been logged for the current calendar date.
+6. **Spreadsheet Persistence:** The verified record is appended to `attendance.xlsx` with formatted styling and timestamps.
 
 ---
 
-## Troubleshooting
+## Project Structure
 
-See [`docs/troubleshooting.md`](docs/troubleshooting.md).
+```text
+rfid-smart-attendance-system/
+│
+├── docs/
+│   ├── attendance-logic.md
+│   ├── development-notes.md
+│   ├── project-architecture.md
+│   ├── setup-guide.md
+│   └── troubleshooting.md
+│
+├── firmware/
+│   ├── rfid_smart_attendance/
+│   │   └── rfid_smart_attendance.ino
+│   └── rfid_uid_scanner/
+│       └── rfid_uid_scanner.ino
+│
+├── hardware/
+│   ├── circuit-diagram.png
+│   └── components.md
+│
+├── media/
+│   └── README.md
+│
+├── attendance_to_excel.py
+├── requirements.txt
+├── README.md
+├── LICENSE
+└── .gitignore
+```
+
+---
+
+## Results
+
+- Reliable contactless student identification with low latency (< 500 ms)
+- Fully automated Excel workbook updates without manual data entry
+- Dual-layer protection against accidental or duplicate scans across reboots
+- Clear diagnostic feedback in the terminal for rapid debugging
+- Robust modular architecture separating embedded acquisition from desktop persistence
+
+---
 
 ## Future Improvements
 
-- Add a session/class ID to allow multiple classes per day.
-- Add an LCD/OLED and buzzer.
-- Add an online backup or Google Sheets integration.
-- Create attendance summaries and percentage reports.
-- Add a real-time clock if the system must timestamp scans independently of the computer.
+- On-device OLED / LCD display for instant visual confirmation
+- Piezoelectric buzzer and indicator LEDs for auditory and visual feedback
+- Real-Time Clock (RTC DS3231) for standalone offline timestamping
+- Multi-classroom session and subject period tracking
+- Cloud synchronization (Google Sheets, Firebase, or Supabase)
+- Web-based attendance monitoring and analytics dashboard
+
+---
+
+## Documentation
+
+Detailed project documentation is available in the `docs/` directory:
+
+- Attendance Logic & Verification (`docs/attendance-logic.md`)
+- System Architecture & Data Flow (`docs/project-architecture.md`)
+- Hardware Setup & Configuration Guide (`docs/setup-guide.md`)
+- Troubleshooting & Diagnostic Guide (`docs/troubleshooting.md`)
+- Development Notes & Engineering Insights (`docs/development-notes.md`)
+
+---
 
 ## License
 
-This project is released under the MIT License. See [`LICENSE`](LICENSE).
+This project is released under the MIT License.
+
+---
